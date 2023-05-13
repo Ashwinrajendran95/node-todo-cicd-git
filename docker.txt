@@ -1,29 +1,35 @@
 pipeline {
-    agent { label "dev-server" }
-    stages{
-        stage("Clone Code"){
-            steps{
-                git url: "https://github.com/LondheShubham153/node-todo-cicd.git", branch: "master"
+    agent any
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-github-repo.git'
             }
         }
-        stage("Build and Test"){
-            steps{
-                sh "docker build . -t node-app-test-new"
+        
+        stage('Build') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
             }
         }
-        stage("Push to Docker Hub"){
-            steps{
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker tag node-app-test-new ${env.dockerHubUser}/node-app-test-new:latest"
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
-                }
-            }
-        }
-        stage("Deploy"){
-            steps{
-                sh "docker-compose down && docker-compose up -d"
+        
+        stage('Deploy') {
+            steps {
+                sh 'npm run deploy'
             }
         }
     }
+    
+    post {
+        success {
+            slackSend(channel: '#build-notifications', color: 'good', message: 'Web application successfully built and deployed!')
+        }
+        
+        failure {
+            slackSend(channel: '#build-notifications', color: 'danger', message: 'Web application build or deployment failed!')
+        }
+    }
 }
+
